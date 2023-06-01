@@ -2,10 +2,11 @@
 const express = require('express');
 const router = express.Router();
 
+
 /**
  * BASIC PHASE 1, Step A - Import model
  */
-// Your code here
+const { Tree } = require('../db/models')
 
 /**
  * INTERMEDIATE BONUS PHASE 1 (OPTIONAL), Step A:
@@ -23,11 +24,17 @@ const router = express.Router();
  *   - Object properties: heightFt, tree, id
  *   - Ordered by the heightFt from tallest to shortest
  */
-router.get('/', async (req, res, next) => {
+router.get('/', async(req, res, next) => {
     let trees = [];
-
-    // Your code here
-
+    const allTree = await Tree.findAll({
+        order: [
+            ['heightFt', 'DESC']
+        ],
+        attributes: ['heightFt', 'tree', 'id']
+    })
+    allTree.forEach(element => {
+        trees.push(element)
+    });
     res.json(trees);
 });
 
@@ -40,12 +47,11 @@ router.get('/', async (req, res, next) => {
  * Response: JSON Object
  *   - Properties: id, tree, location, heightFt, groundCircumferenceFt
  */
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', async(req, res, next) => {
     let tree;
 
     try {
-        // Your code here
-
+        tree = await Tree.findByPk(req.params.id)
         if (tree) {
             res.json(tree);
         } else {
@@ -55,7 +61,7 @@ router.get('/:id', async (req, res, next) => {
                 details: 'Tree not found'
             });
         }
-    } catch(err) {
+    } catch (err) {
         next({
             status: "error",
             message: `Could not find tree ${req.params.id}`,
@@ -80,13 +86,22 @@ router.get('/:id', async (req, res, next) => {
  *   - Property: data
  *     - Value: object (the new tree)
  */
-router.post('/', async (req, res, next) => {
+router.post('/', async(req, res, next) => {
     try {
+        const { name, location, height, size } = req.body
+        const oneTree = Tree.build({
+            tree: name,
+            location,
+            heightFt: height,
+            groundCircumferenceFt: size
+        })
+        await oneTree.save()
         res.json({
             status: "success",
             message: "Successfully created new tree",
+            data: oneTree
         });
-    } catch(err) {
+    } catch (err) {
         next({
             status: "error",
             message: 'Could not create new tree',
@@ -115,13 +130,24 @@ router.post('/', async (req, res, next) => {
  *   - Property: details
  *     - Value: Tree not found
  */
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', async(req, res, next) => {
     try {
-        res.json({
-            status: "success",
-            message: `Successfully removed tree ${req.params.id}`,
-        });
-    } catch(err) {
+        const destroyedTree = await Tree.findByPk(req.params.id)
+        if (destroyedTree) {
+            await destroyedTree.destroy()
+            res.json({
+                status: "success",
+                message: `Successfully removed tree ${req.params.id}`,
+                data: destroyedTree
+            });
+        } else {
+            next({
+                status: "not-found",
+                message: `Could not remove tree ${req.params.id}`,
+                details: 'Tree not found'
+            });
+        }
+    } catch (err) {
         next({
             status: "error",
             message: `Could not remove tree ${req.params.id}`,
@@ -164,10 +190,10 @@ router.delete('/:id', async (req, res, next) => {
  *   - Property: details
  *     - Value: Tree not found
  */
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', async(req, res, next) => {
     try {
         // Your code here
-    } catch(err) {
+    } catch (err) {
         next({
             status: "error",
             message: 'Could not update new tree',
@@ -187,7 +213,7 @@ router.put('/:id', async (req, res, next) => {
  *   - Object properties: heightFt, tree, id
  *   - Ordered by the heightFt from tallest to shortest
  */
-router.get('/search/:value', async (req, res, next) => {
+router.get('/search/:value', async(req, res, next) => {
     let trees = [];
 
 
